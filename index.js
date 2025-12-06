@@ -1,0 +1,39 @@
+const express = require('express')
+const app = express()
+const mongoose = require('mongoose')
+const category = require('./routes/categories')
+const product = require('./routes/products')
+const blog = require('./routes/blogs')
+const customer = require('./routes/customers')
+const cart = require('./routes/carts')
+const order = require('./routes/orders')
+const user = require('./routes/users')
+const auth = require('./routes/auth')
+const config = require('config')
+const cors = require('cors')
+
+if (!config.get('jwtPrivateKey')) {
+console.error('FATAL ERROR: jwtPrivateKey is not defined.');
+process.exit(1);
+}
+
+mongoose.connect('mongodb://localhost/bycProducts')
+.then( () => console.log('connected to mongoDB...'))
+.catch(err => console.log(err, 'connection failed...'))
+
+app.use(cors({
+  origin: "http://localhost:5173", // your frontend URL
+}));
+app.use(express.json())
+app.use('/api/byc-stores/category', category)
+app.use('/api/byc-stores/product', product)
+app.use('/api/byc-stores/blog', blog)
+app.use('/api/byc-stores/customer', customer)
+app.use('/api/byc-stores/cart', cart)
+app.use('/api/byc-stores/order', order )
+app.use('/api/byc-stores/user/register', user )
+app.use('/api/byc-stores/auth/login', auth )
+
+const port = process.env.PORT || 3000
+
+app.listen(port, console.log(`listening on port ${port}...`))
