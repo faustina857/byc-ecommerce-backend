@@ -1,82 +1,224 @@
-const {Order, validate} = require('../models/order')
-const {Customer} = require('../models/customer')
-const {Product} = require('../models/product')
-const express = require('express')
-const router = express.Router()
-
+const {Order, validate} = require('../models/order');
+const express = require('express');
+const router = express.Router();
+const axios = require('axios');
 
 router.post('/create', async (req, res) => {
-    const { error } = validate(req.body);
-    if (error) return res.status(400).send(error.details[0].message);
+    try {
+        const { error } = validate(req.body);
+        if (error) return res.status(400).send(error.details[0].message);
 
-    let order = new Order(req.body);
-    await order.save();
-
-    // Initialize Paystack
-    const response = await axios.post(
-        "https://api.paystack.co/transaction/initialize",
-        {
-            email: order.customerSnapshot.email,
-            amount: order.totalAmount * 100, // in kobo
-            metadata: { orderId: order._id.toString() }
-        },
-        {
-            headers: {
-                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
-            }
+        // Check if Paystack key exists
+        if (!process.env.PAYSTACK_SECRET_KEY) {
+            return res.status(500).send('Paystack secret key not configured');
         }
-    );
 
-    // save reference
-    order.paymentReference = response.data.data.reference;
-    await order.save();
+        const order = new Order(req.body);
+        await order.save();
 
-    res.send({
-        orderId: order._id,
-        authorizationUrl: response.data.data.authorization_url,
-        reference: response.data.data.reference
-    });
+        try {
+            // Initialize Paystack
+            const response = await axios.post(
+                "https://api.paystack.co/transaction/initialize",
+                {
+                    email: order.customerSnapshot.emailAddress,
+                    amount: order.totalAmount * 100,
+                    callback_url: "http://localhost:5173/verify",
+                    metadata: { orderId: order._id.toString() }
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000
+                }
+            );
+
+            // Check if response is successful
+            if (!response.data.status) {
+                throw new Error(response.data.message || 'Paystack initialization failed');
+            }
+
+            // save reference
+            order.paymentReference = response.data.data.reference;
+            await order.save();
+
+            res.send({
+                orderId: order._id,
+                authorizationUrl: response.data.data.authorization_url,
+                reference: response.data.data.reference
+            });
+
+        } catch (paystackError) {
+            // If Paystack fails, delete the order
+            await Order.findByIdAndDelete(order._id);
+            throw paystackError; // Re-throw to outer catch
+        }
+
+    } catch (error) {
+        console.error('Order creation error:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
+
+        res.status(500).send({
+            error: 'Failed to create order',
+            message: error.response?.data?.message || error.message
+        });
+    }
 });
-
 
 router.post('/confirm', async (req, res) => {
-    const { reference } = req.body;
+    try {
+        const { reference } = req.body;
 
-    const response = await axios.get(
-        "https://api.paystack.co/transaction/verify/${reference}",
-        {
-            headers: {
-                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
-            }
+        if (!reference) {
+            return res.status(400).send({ success: false, message: "Reference is required" });
         }
-    );
 
-    const data = response.data.data;
-    if (data.status === "success") {
-        const order = await Order.findOneAndUpdate(
-            { paymentReference: reference },
-            { paymentStatus: "paid", transactionId: data.id },
-            { new: true }
+        const response = await axios.get(
+            `https://api.paystack.co/transaction/verify/${reference}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+                },
+                timeout: 10000
+            }
         );
-        return res.send({ success: true, order });
-    } else {
-        return res.status(400).send({ success: false, message: "Payment failed" });
+
+        const data = response.data.data;
+        if (data.status === "success") {
+            const order = await Order.findOneAndUpdate(
+                { paymentReference: reference },
+                { paymentStatus: "paid", transactionId: data.id },
+                { new: true }
+            );
+
+            if (!order) {
+                return res.status(404).send({ success: false, message: "Order not found" });
+            }
+
+            return res.send({ success: true, order });
+        } else {
+            return res.status(400).send({ success: false, message: "Payment failed" });
+        }
+
+    } catch (error) {
+        console.error('Payment confirmation error:', {
+            message: error.message,
+            response: error.response?.data
+        });
+
+        res.status(500).send({
+            success: false,
+            message: error.response?.data?.message || 'Failed to verify payment'
+        });
     }
 });
-
 
 router.post('/webhook', express.json({ type: 'application/json' }), async (req, res) => {
-    const event = req.body;
+    try {
+        const event = req.body;
 
-    if (event.event === "charge.success") {
-        const reference = event.data.reference;
-        await Order.findOneAndUpdate(
-            { paymentReference: reference },
-            { paymentStatus: "paid", transactionId: event.data.id }
-        );
+        if (event.event === "charge.success") {
+            const reference = event.data.reference;
+            await Order.findOneAndUpdate(
+                { paymentReference: reference },
+                { paymentStatus: "paid", transactionId: event.data.id }
+            );
+        }
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.error('Webhook error:', error.message);
+        res.sendStatus(200); // Still return 200 to Paystack
     }
-
-    res.sendStatus(200);
 });
 
-module.exports = router
+router.get("/get-all-orders", async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .sort({ createdAt: -1 });
+
+    res.send(orders);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to fetch orders" });
+  }
+});
+
+router.put("/update-delivery-status/:id",async (req, res) => {
+  try {
+    const { deliveryStatus } = req.body;
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { deliveryStatus },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).send({ message: "Order not found" });
+    }
+
+    res.send(order);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to update delivery status" });
+  }
+});
+
+router.put("/update-payment-status/:id", async (req, res) => {
+  try {
+    const { paymentStatus } = req.body;
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { paymentStatus },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).send({ message: "Order not found" });
+    }
+
+    res.send(order);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to update payment status" });
+  }
+});
+
+
+router.get('/order-analytics', async (req, res) => {
+  try {
+    const analytics = await Order.aggregate([
+      {
+        $group: {
+          _id: {
+            $month: "$createdAt"
+          },
+          totalOrders: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    const months = [
+      "Jan","Feb","Mar","Apr","May","Jun",
+      "Jul","Aug","Sep","Oct","Nov","Dec"
+    ];
+
+    const formatted = analytics.map(item => ({
+      month: months[item._id - 1],
+      orders: item.totalOrders
+    }));
+
+    res.status(200).json(formatted);
+  } catch (err) {
+    res.status(500).json({ message: "Analytics error", error: err });
+  }
+});
+
+
+
+module.exports = router;

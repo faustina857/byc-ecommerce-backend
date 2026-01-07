@@ -22,7 +22,8 @@ if (!validPassword) return res.status(400).json({
     res.send({
         token: token,
         name: user.name,
-        email: user.email
+        email: user.email,
+        isAdmin: user.isAdmin
     })
 })
 

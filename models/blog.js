@@ -18,6 +18,10 @@ const blogSchema = new mongoose.Schema({
         minlength: 5,
         maxlength: 100
     },
+    blogContent:{
+        type: String,
+        required: true
+    },
     ownerName:{
         type: String,
         required: true,
@@ -43,8 +47,9 @@ function validateBlog(blog){
         blogImage: Joi.string().required(),
         blogDescription: Joi.string().min(5).max(1500).required(),
         blogTitle: Joi.string().min(5).max(100).required(),
+        blogContent: Joi.string().required(),
         ownerName: Joi.string().min(5).max(50).required(),
-        ownerImage: Joi.array().items(Joi.string()).required(),
+        ownerImage: Joi.string().required(),
         ownerProfession: Joi.string().min(3).max(50).required()
     })
     return schema.validate(blog)

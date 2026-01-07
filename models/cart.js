@@ -57,37 +57,6 @@ cartSchema.pre("save",function(next){
 
 const Cart = mongoose.model("Cart", cartSchema)
 
-// function validateCart(cart){
-//     const schema = Joi.object({
-//         customerId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).required(), // must be a valid ObjectId string
-//         customerSnapshot: Joi.object().keys({
-//            name: Joi.string().min(2).max(100).required(),
-//            email: Joi.string().email().required(),
-//         }),
-
-//         items: Joi.array().items(
-//             Joi.object().keys({
-//             productId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).required(),
-//             name: Joi.string().required(),
-//             color:Joi.string(),
-//             size: Joi.string(),
-//             price: Joi.number().min(0).required(),
-//             quantity: Joi.number().integer().min(1).required(),
-//             subtotal: Joi.number().min(0),
-//             })
-//         ).min(1).required(),
-
-//         totalAmount: Joi.number().min(0),
-
-//         status: Joi.string().valid("active", "checked_out", "abandoned").default("active"),
-
-//         createdAt: Joi.date(),
-//         updatedAt: Joi.date(),
- 
-//     })
-
-//     return schema.validate(cart)
-// }
 function validateCart(cart) {
     const schema = Joi.object({
         customerId: Joi.string()

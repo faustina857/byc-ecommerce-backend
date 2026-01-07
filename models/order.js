@@ -28,11 +28,13 @@ const orderSchema = new mongoose.Schema({
     },
     customerSnapshot: {
         fullName: String,
+        companyName: String,
         address: String, 
         emailAddress: String,
         phone: String,
         state: String,
         city: String,
+        country: String,
         landMark: String
     },
     items: [orderItemSchema],
@@ -59,6 +61,10 @@ const orderSchema = new mongoose.Schema({
     paymentGateway: {
         type: String,
         default: "paystack"
+    },
+    paymentMethod: {
+        type: String,
+        default: "Paystack"
     },
     transactionId: {
         type: String // Paystack transaction id
@@ -88,10 +94,13 @@ function validateOrder(order) {
         customerId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).required(),
         customerSnapshot: Joi.object().keys({
             fullName: Joi.string().min(5).max(100).required(),
+            companyName: Joi.string().allow('').optional(),
+            address: Joi.string().min(5).max(100).required(),
             emailAddress: Joi.string().email().required(),
-            phone: Joi.string().min(5).max(11).required(),
+            phone: Joi.string().min(5).max(15).required(),
             state: Joi.string().required(),
             city: Joi.string().required(),
+            country: Joi.string().required(),
             landMark: Joi.string().required()
         }),
         items: Joi.array().items(
@@ -106,11 +115,12 @@ function validateOrder(order) {
                 subTotal: Joi.number().required()
             })
         ).min(1).required(),
-        totalAmount: Joi.number(),
+        totalAmount: Joi.number().required(),
         paymentStatus: Joi.string().valid('pending', 'paid', 'failed', 'refunded'),
         deliveryStatus: Joi.string().valid('pending', 'processing', 'shipped', 'delivered', 'cancelled'),
         paymentReference: Joi.string().optional(),
         paymentGateway: Joi.string().optional(),
+        paymentMethod: Joi.string().optional(),
         transactionId: Joi.string().optional(),
         createdAt: Joi.date(),
         updatedAt: Joi.date()

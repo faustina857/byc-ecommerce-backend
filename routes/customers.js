@@ -7,28 +7,49 @@ router.get('/get-all-customers', async (req, res) =>{
     res.send(customer)
 })
 
-router.post('/add-new-customer', async (req,res) =>{
-    const {error} = validate(req.body)
-    if (error) return res.status(400).send(error.details[0].message);
-        let customer = new Customer({
-            fullName:req.body.fullName,
-            companyName:req.body.companyName,
-            country:req.body.country,
-            city:req.body.city,
-            state:req.body.state,
-            address:req.body.address,
-            phone:req.body.phone,
-            emailAddress:req.body.emailAddress,
-            landMark:req.body.landMark
-        })
-        
-        customer = await customer.save();
+router.post('/add-new-customer', async (req, res) => {
+  // Joi validation first
+  const { error } = validate(req.body);
+  if (error) return res.status(400).send(error.details[0].message);
 
-        res.json({
-            status: "success",
-            message: "customer created successfully"
-        })
-})
+  try {
+    // Check if customer already exists by email
+    const existingCustomer = await Customer.findOne({ emailAddress: req.body.emailAddress });
+    if (existingCustomer) {
+      return res.status(400).json({
+        status: "error",
+        message: "Email already registered",
+      });
+    }
+
+    // Create new customer object
+    let customer = new Customer({
+      fullName: req.body.fullName,
+      companyName: req.body.companyName || undefined, // optional
+      country: req.body.country,
+      city: req.body.city,
+      state: req.body.state,
+      address: req.body.address,
+      phone: req.body.phone,
+      emailAddress: req.body.emailAddress,
+      landMark: req.body.landMark,
+    });
+
+    customer = await customer.save();
+
+    res.json({
+      status: "success",
+      message: "Customer created successfully",
+      customerId: customer._id,
+    });
+  } catch (err) {
+    console.error("Customer snapshot error:", err.message);
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+    });
+  }
+});
 
 router.put('/update-customer/:id', async (req, res) =>{
     const {error} = validate(req.body)

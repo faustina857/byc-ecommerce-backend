@@ -10,8 +10,15 @@ const customerSchema = new mongoose.Schema({
     },
     companyName:{
         type: String,
-        minlength: 5,
-        maxlength: 50
+        required: false,
+        trim: true, 
+        validate: { 
+            validator: function (v) { 
+                // allow empty or undefined, otherwise enforce minlength 
+                return !v || v.length >= 5; }, 
+                message: "Company name must be at least 5 characters if provided", 
+            },
+        required: false
     },
     country: {
         type: String,
@@ -67,7 +74,7 @@ const Customer = mongoose.model('Customer', customerSchema)
 function validateCustomer(customer){
     const schema = Joi.object({
         fullName: Joi.string().min(5).max(100).required(),
-        companyName: Joi.string().min(5).max(50),
+        companyName: Joi.string().min(5).allow('').optional(),
         country: Joi.string().min(4).max(50).required(),
         city: Joi.string().min(3).max(50).required(),
         state: Joi.string().min(4).max(50).required(),
