@@ -43,8 +43,10 @@ const productSchema = new mongoose.Schema({
     category:{
         type: categorySchema,
         required: true
-    }
-})
+    },
+    
+}, {timestamps: true}
+)
 
 const Product = mongoose.model("Product", productSchema)
 

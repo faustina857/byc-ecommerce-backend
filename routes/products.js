@@ -6,7 +6,8 @@ const auth = require('../middleware/auth')
 const admin = require('../middleware/admin')
 
 router.get('/get-all-products', async(req, res) =>{
-    const product = await Product.find();
+    const product = await Product.find()
+    .sort({ createdAt: -1});
     res.send(product)
 })
 

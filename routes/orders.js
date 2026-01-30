@@ -189,35 +189,7 @@ router.put("/update-payment-status/:id", async (req, res) => {
 });
 
 
-router.get('/order-analytics', async (req, res) => {
-  try {
-    const analytics = await Order.aggregate([
-      {
-        $group: {
-          _id: {
-            $month: "$createdAt"
-          },
-          totalOrders: { $sum: 1 }
-        }
-      },
-      { $sort: { "_id": 1 } }
-    ]);
 
-    const months = [
-      "Jan","Feb","Mar","Apr","May","Jun",
-      "Jul","Aug","Sep","Oct","Nov","Dec"
-    ];
-
-    const formatted = analytics.map(item => ({
-      month: months[item._id - 1],
-      orders: item.totalOrders
-    }));
-
-    res.status(200).json(formatted);
-  } catch (err) {
-    res.status(500).json({ message: "Analytics error", error: err });
-  }
-});
 
 
 

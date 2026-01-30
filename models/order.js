@@ -43,6 +43,10 @@ const orderSchema = new mongoose.Schema({
         required: true,
         default: 0
     },
+    deliveryFee:{
+        type: Number,
+        default: 800
+    },
     paymentStatus: {
         type: String,
         enum: ['pending', 'paid', 'failed', 'refunded'],
@@ -81,7 +85,7 @@ const orderSchema = new mongoose.Schema({
 
 // --- Calculate total before saving ---
 orderSchema.pre('save', function (next) {
-    this.totalAmount = this.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    this.totalAmount = this.items.reduce((acc, item) => acc + (item.price * item.quantity), 0) + (this.deliveryFee);
     this.updatedAt = new Date();
     next();
 });
@@ -116,6 +120,7 @@ function validateOrder(order) {
             })
         ).min(1).required(),
         totalAmount: Joi.number().required(),
+        deliveryFee: Joi.number(),
         paymentStatus: Joi.string().valid('pending', 'paid', 'failed', 'refunded'),
         deliveryStatus: Joi.string().valid('pending', 'processing', 'shipped', 'delivered', 'cancelled'),
         paymentReference: Joi.string().optional(),
