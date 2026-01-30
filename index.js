@@ -26,7 +26,7 @@ mongoose.connect('mongodb://localhost/bycProducts')
 
 app.use(cors({
   origin: ["http://localhost:5173", // frontend URL
-            "http://localhost:5174" // admin URL
+            "http://localhost:5176" // admin URL
   ]}));
 app.use(express.json())
 app.use('/api/byc-stores/category', category)
