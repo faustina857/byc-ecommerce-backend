@@ -24,10 +24,17 @@ mongoose.connect('mongodb://localhost/bycProducts')
 .then( () => console.log('connected to mongoDB...'))
 .catch(err => console.log(err, 'connection failed...'))
 
-app.use(cors({
-  origin: ["http://localhost:5173", // frontend URL
-            "http://localhost:5174" // admin URL
-  ]}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",   // frontend local
+      "http://localhost:5174",   // admin local
+      "https://byc-admin-9c19.vercel.app" // frontend on Vercel
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+  })
+);
+
 app.use(express.json())
 app.use('/api/byc-stores/category', category)
 app.use('/api/byc-stores/product', product)
