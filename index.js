@@ -20,20 +20,21 @@ process.exit(1);
 
 console.log('paystack secretekey:', !!process.env.PAYSTACK_SECRET_KEY)
 
-mongoose.connect('mongodb://localhost/bycProducts')
-.then( () => console.log('connected to mongoDB...'))
-.catch(err => console.log(err, 'connection failed...'))
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("Connected to MongoDB..."))
+  .catch(err => console.error("Mongo error:", err));
+
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",   // frontend local
-      "http://localhost:5174",   // admin local
-      "https://byc-admin-9c19.vercel.app" // frontend on Vercel
-    ],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+    origin:"*",
+    methods: ["GET", "POST", "PUT", "DELETE"]
   })
 );
+
+app.get("/", (req, res) => {
+  res.send("BYC Backend is running 🚀");
+});
 
 app.use(express.json())
 app.use('/api/byc-stores/category', category)
