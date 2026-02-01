@@ -27,10 +27,17 @@ mongoose.connect(process.env.MONGO_URI)
 
 app.use(
   cors({
-    origin:"*",
-    methods: ["GET", "POST", "PUT", "DELETE"]
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "https://byc-admin-9c19.vercel.app"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,      // allow cookies/auth headers
+    optionsSuccessStatus: 200 // for preflight
   })
 );
+
 
 app.get("/", (req, res) => {
   res.send("BYC Backend is running 🚀");
