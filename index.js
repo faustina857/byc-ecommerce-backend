@@ -30,7 +30,8 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
-      "https://byc-admin-three.vercel.app"
+      "https://byc-admin-three.vercel.app",
+      "https://byc-ecommerce-rpac.vercel.app/"
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,      // allow cookies/auth headers
