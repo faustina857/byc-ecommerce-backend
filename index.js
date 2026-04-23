@@ -18,7 +18,15 @@ console.error('FATAL ERROR: jwtPrivateKey is not defined.');
 process.exit(1);
 }
 
-console.log('paystack secretekey:', !!process.env.PAYSTACK_SECRET_KEY)
+if (!process.env.PAYSTACK_SECRET_KEY) {
+  console.error('FATAL ERROR: PAYSTACK_SECRET_KEY is not defined.');
+  process.exit(1);
+}
+ 
+if (!process.env.FRONTEND_URL) {
+  console.error('FATAL ERROR: FRONTEND_URL is not defined.');
+  process.exit(1);
+}
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB..."))
@@ -39,12 +47,11 @@ app.use(
   })
 );
 
-
+app.use(express.json());
 app.get("/", (req, res) => {
   res.send("BYC Backend is running 🚀");
 });
 
-app.use(express.json())
 app.use('/api/byc-stores/category', category)
 app.use('/api/byc-stores/product', product)
 app.use('/api/byc-stores/blog', blog)

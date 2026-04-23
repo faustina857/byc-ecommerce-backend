@@ -21,8 +21,8 @@ router.post("/", async (req, res) => {
 
    
     const customerSnapshot = {
-        name: customer.name,
-        email: customer.email,
+        name: customer.fullName,
+        email: customer.emailAddress,
     };
 
     

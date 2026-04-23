@@ -2,6 +2,8 @@ const {Order, validate} = require('../models/order');
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const auth = require('../middleware/auth');
+const admin = require('../middleware/admin');
 
 router.post('/create', async (req, res) => {
     try {
@@ -23,7 +25,7 @@ router.post('/create', async (req, res) => {
                 {
                     email: order.customerSnapshot.emailAddress,
                     amount: order.totalAmount * 100,
-                    callback_url: "http://localhost:5173/verify",
+                    callback_url: `${process.env.FRONTEND_URL}/verify`,
                     metadata: { orderId: order._id.toString() }
                 },
                 {
@@ -137,7 +139,7 @@ router.post('/webhook', express.json({ type: 'application/json' }), async (req, 
     }
 });
 
-router.get("/get-all-orders", async (req, res) => {
+router.get("/get-all-orders", [auth, admin], async (req, res) => {
   try {
     const orders = await Order.find()
       .sort({ createdAt: -1 });
@@ -148,7 +150,7 @@ router.get("/get-all-orders", async (req, res) => {
   }
 });
 
-router.put("/update-delivery-status/:id",async (req, res) => {
+router.put("/update-delivery-status/:id", [auth, admin], async (req, res) => {
   try {
     const { deliveryStatus } = req.body;
 
@@ -168,7 +170,7 @@ router.put("/update-delivery-status/:id",async (req, res) => {
   }
 });
 
-router.put("/update-payment-status/:id", async (req, res) => {
+router.put("/update-payment-status/:id", [auth, admin], async (req, res) => {
   try {
     const { paymentStatus } = req.body;
 
